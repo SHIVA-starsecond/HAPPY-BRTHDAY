@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>For Someone Special ❤️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&f[]=playfair-display@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0c0a09;
+            --primary-color: #f43f5e;
+            --secondary-color: #ec4899;
+            --accent-glow: rgba(236, 72, 153, 0.5);
+        }
+        body {
+            font-family: 'Satoshi', sans-serif;
+            background-color: var(--bg-color);
+            color: #f9fafb;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* === MERGED TWO-IMAGE WATERMARK BACKGROUND === */
+        .watermark-img {
+            position: fixed;
+            top: 0;
+            width: 50%; /* Each image takes half the screen width */
+            height: 100%;
+            background-size: cover;
+            background-repeat: no-repeat;
+            opacity: 0.25;
+            filter: grayscale(30%) brightness(80%);
+            z-index: 0;
+        }
+        #watermark-left {
+            left: 0;
+            background-image: url('images/watermark-left.jpg');
+            background-position: left center;
+            /* This makes the right edge fade out */
+            mask-image: linear-gradient(to right, black 80%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%);
+        }
+        #watermark-right {
+            right: 0;
+            background-image: url('images/watermark-right.jpg');
+            background-position: right center;
+            /* This makes the left edge fade out */
+            mask-image: linear-gradient(to left, black 80%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to left, black 80%, transparent 100%);
+        }
+        
+        #app {
+            display: grid;
+            place-items: center;
+            height: 100vh;
+            padding: 1rem;
+            position: relative;
+            z-index: 2;
+        }
+        #step-container {
+            width: 100%;
+            height: 100%;
+            max-width: 800px;
+            max-height: 650px;
+            position: relative;
+        }
+        .step {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            background: rgba(26, 26, 26, 0.5);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.95);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+            pointer-events: none;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            text-align: center;
+        }
+        .step.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            pointer-events: all;
+        }
+        .step .anim-child { opacity: 0; transform: translateY(25px); }
+       .btn {
+            font-weight: 700;
+            background-image: linear-gradient(90deg, var(--secondary-color), var(--primary-color));
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            will-change: transform;
+            box-shadow: 0 0 20px rgba(236, 72, 153, 0.3);
+            border-radius: 9999px;
+            padding: 0.75rem 2.5rem;
+            color: white;
+            margin-top: 1rem;
+            position: relative;
+            z-index: 10;
+        }
+        .btn:hover { transform: translateY(-5px) scale(1.05); box-shadow: 0 0 35px var(--accent-glow); }
+        .btn:active { transform: translateY(-1px) scale(1); }
+        .text-gradient {
+            font-family: 'Playfair Display', serif;
+            background: linear-gradient(90deg, #f9a8d4, #f472b6, #fff);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px var(--accent-glow)); }
+            50% { transform: scale(1.2); filter: drop-shadow(0 0 25px var(--accent-glow));}
+        }
+        .heart-beat { animation: heartbeat 1.5s ease-in-out infinite; }
+        .bento-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 1.5rem; }
+        .bento-item { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); transition: all 0.3s ease; padding: 1.5rem; border-radius: 0.75rem;}
+        .bento-item:hover { transform: translateY(-8px); background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+        .bento-item-1 { grid-column: span 2; }
+        .bento-item-3 { grid-column: span 2; }
+        @media (max-width: 768px) {
+            .bento-grid { grid-template-columns: 1fr; }
+            .bento-item-1, .bento-item-3 { grid-column: span 1; }
+        }
+        .final-wish-text { opacity: 0; transform: translateY(20px); }
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+            width: 100%;
+            max-width: 500px;
+        }
+        .photo-grid-large {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+            width: 100%;
+            max-width: 700px;
+        }
+        .polaroid-item {
+            background-color: white;
+            padding: 0.75rem;
+            padding-bottom: 3rem;
+            border-radius: 0.25rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+        .polaroid-item:hover {
+            transform: scale(1.05) rotate(2deg);
+        }
+       .polaroid-item img {
+            width: 100%;
+            height: 240px;
+            object-fit: cover;
+        }
+        .polaroid-item p {
+            position: absolute;
+            bottom: 0.75rem;
+            left: 0.75rem;
+            right: 0.75rem;
+            text-align: center;
+            color: #333;
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 768px) {
+             .photo-grid-large { grid-template-columns: repeat(2, 1fr); }
+             .polaroid-item img { height: 150px; }
+        }
+        @media (max-width: 480px) {
+             .photo-grid-large { grid-template-columns: 1fr; }
+        }
+        .memory-image { cursor: pointer; }
+        .memory-text-display {
+            transition: opacity 0.4s ease-in-out;
+            min-height: 40px;
+            max-width: 90%;
+            margin: 0 auto;
+            color: #fbcfe8;
+        }
+        .wish-buttons-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .wish-btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            margin-top: 0;
+        }
+        .flip-card-container {
+            width: 100%;
+            max-width: 450px;
+            height: 580px;
+            perspective: 1500px;
+            display: none;
+        }
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.8s;
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+        .flip-card-inner.is-flipped {
+            transform: rotateY(180deg);
+        }
+        .flip-card-front,
+        .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            text-align: center;
+        }
+        .flip-card-front {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .flip-card-back {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            transform: rotateY(180deg);
+        }
+        .flip-card-back p {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+        .flip-card-back .btn {
+            background-image: none;
+            background-color: rgba(255, 255, 255, 0.2);
+            margin-top: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <audio id="birthday-song" src="Tmkoc Sad Bgm.mp3" loop></audio>
+
+    <!-- The two new watermark divs -->
+    <div id="watermark-left" class="watermark-img"></div>
+    <div id="watermark-right" class="watermark-img"></div>
+    
+    <div id="canvas-container" style="position: fixed; top: 0; left: 0; z-index: 1;"></div>
+    
+    <div id="app">
+        <main id="step-container">
+            <!-- All steps (1 through 8) remain the same as your current file -->
+            <div id="step1" class="step max-w-lg">
+                <div id="step1-content" class="text-center">
+                    <div class="anim-child text-7xl mb-6 heart-beat">❤️</div>
+                    <h1 class="anim-child text-4xl md:text-5xl font-bold text-gradient mb-4">Mere Pyarii Sanskriti</h1>
+                    <p class="anim-child text-gray-300 mb-8 text-lg">I have prepared something for you, to make you feel more special on this special day💙❤️ Before starting, I want to say something , I LOVE YOU SOO MUCH MY DEAR SANSKRITI🥹👉👈 You have been my all time favourite person and my bestest friend😚 I feel soo blessed to have you as my partner🫂❤️ You are the one whose smile makes my world brighter and whose presence feels like a gift every single day☺️   HAPPY BIRTHDAY, MY LOVE.</p>
+                    <button id="open-poem-btn" class="anim-child btn mb-4">A Message For You</button>
+                    <button id="start-btn" class="anim-child btn">Let's Begin</button>
+                </div>
+                <div id="poem-card" class="flip-card-container">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front">
+                            <div class="text-5xl mb-4">💌</div><br>
+                            <h2 class="text-3xl font-bold text-gradient">"Mere Pyarii Deviji"🫶🫂
+                                The one who literally thaught me what the meaning of love is....here is a something for you!!
+                            </h2>
+                            <p class="text-gray-300 mt-4">(Click me to read)</p>
+                        </div>
+                        <div class="flip-card-back">
+                            <h3 class="text-2xl font-bold mb-4">"तुम प्रेरणा हो मेरी"🙏❤</h3>
+                            <p>
+                                 तुम प्रेरणा हो मेरी, तुम साधना हो मेरी,<br>
+                                तुम सामने हो मेरे पर तुम कल्पना हो मेरी ||🫂🥹<br>
+                                तुम अक्षत सी पवित्र, सौंदर्य का रूप चित्र,<br>
+                                आओ संग तुम्हारे, प्रेम की एक बाती बाल दूं ||💘💜<br>
+                                तुम बन जाओ दीप मेरी, मैं आरती का थाल हूं,<br>
+                               तुमको तुम ही से मांग रहा हूं, तुम आराधना हो मेरी,
+                               तुम साधना हो मेरी, तुम प्रेरणा हो मेरी तुम सामने हो मेरे पर तुम कल्पना हो मेरी||😚❤<br>
+                               मैं बिखर रहा हूं पल-पल एक सूखे पात सा, मेरी हथेली को इंतजार है तुम्हारे हाथ का,
+                               अनगिनत पल ये व्यह के, अब स्वयं कटते नहीं, बादल ये दूरियों के, क्यों भला छटते नहीं,
+                               मैं बन जाऊं आंगन तुम्हारा,💗❤ तुम अल्पना हो मेरी तुम ही साधना हो मेरी तुम प्रेरणा हो मेरी तुम हो सामने मेरे पर तुम कल्पना हो मेरी तुम ही हो प्रेरणा मेरी,
+                               तुम ही हो प्रेरणा मेरी तुम ही हो प्रेरणा मेरी ||😊❤
+                            </p>
+                            <button id="close-poem-btn" class="btn">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="step2" class="step max-w-xl">
+                <div class="anim-child text-7xl mb-4">🎉</div>
+                <h2 class="anim-child text-4xl md:text-5xl font-bold text-gradient mb-4">Happy Birthday!</h2>
+                <p class="anim-child text-gray-300 mb-6 text-lg">Another year of you making the world brighter. Your existence is a gift, and I'm so lucky to witness it🫂 Always stay blessed, may all your dreams come true❤</p>
+                <div class="wish-buttons-container anim-child">
+                    <button class="btn wish-btn" data-message="My biggest wish is to see your face smiling, and I always want to be with you in every moment of life, share each and every moment of life !"💘>A Wish</button>
+                    <button class="btn wish-btn" data-message="Remember where it all started,3rd June 2024💘💜  Since then it has been story full of memories, Our first hug 🫂, first kiss😚 Talking to you each and every day, heals me completely and makes my day beautiful  ">A Memory</button>
+                    <button class="btn wish-btn" data-message="I promise to always be there for you, I will always be the biggest supporter of you and your dreams in each and every phase of life. I promise to bring you snacks whenever you need them and when I say snacks it means 
+                     I will always pay attention to your small needs,
+                     I will always be your comfort during your stressfull and difficult times, 
+                     I will show Small Acts of Love each and everyday,
+                     I will always  be there for you whenever you need me...
+                     Always remember I always consider your dreams and targets as my own, and I promise to fullfill most of them for you." 🫂💘😚>A Promise</button>
+                </div>
+                <button id="next-btn-2" class="anim-child btn">There's more...</button>
+            </div>
+
+            <div id="step3" class="step max-w-4xl">
+                <h2 class="anim-child text-4xl md:text-5xl font-bold text-gradient mb-8">A Few Things I Adore About You</h2>
+                <div class="bento-grid">
+                    <div class="anim-child bento-item bento-item-1"><h3 class="text-2xl font-bold text-pink-300 mb-2">✨ Your Unmatched Kindness</h3><p class="text-gray-300">The genuine warmth you show to everyone is something truly rare and beautiful. You are such a pure soul, even God cannot make a second copy of you</p></div>
+                    <div class="anim-child bento-item"><h3 class="text-2xl font-bold text-pink-300 mb-2">😊 That Smile</h3><p class="text-gray-300">It's a work of art. Believe me or not your smile is my personal all time medicine which heals me even when I am ill. Yaad h mai kehta hu ki tumse baat krke mere kharab tabiyat sahi ho jate hai. Its a magic which you bring with you. Please always be my personal medicine.</p></div>
+                    <div class="anim-child bento-item bento-item-3"><h3 class="text-2xl font-bold text-pink-300 mb-2">🌟 Your Radiant Spirit</h3><p class="text-gray-300">Your passion for life is infectious. Being around you makes everything feel more exciting and possible. I always admire your work ethics, the hard work you put in every day, even in stressfull times you find a way to crack a joke, its a quality which is present in very less people. </p></div>
+                </div>
+                <button id="next-btn-3" class="anim-child btn">Remember this?</button>
+            </div>
+            
+            <div id="step4" class="step max-w-3xl">
+                <h2 class="anim-child text-4xl md:text-5xl font-bold text-gradient mb-6">A Walk Down Memory Lane</h2>
+                <p class="anim-child text-gray-300 mb-6 text-lg">Click on a photo to reveal a memory we shared.</p>
+                <div class="photo-grid">
+                    <div class="anim-child polaroid-item"><img src="images/image1.jpg" alt="Memory 1" class="memory-image" data-text="Do you remember this used to be the place where in the initial days we met regulalry. This was our First beautiful picture where we were soo close too eachother, without any hesitation🥹❤"><p>Our first beautiful picture</p></div>
+                    <div class="anim-child polaroid-item"><img src="images/image4.jpg" alt="Memory 2" class="memory-image" data-text="This was the first time we went for movie together. Although the movie wasen't that good😂, but time we spent together was something I will never forget💘"><p>Movie time</p></div>
+                    <div class="anim-child polaroid-item"><img src="images/image7.jpg" alt="Memory 3" class="memory-image" data-text="It was the first time we sat together with your head resting on my shoulder without any hesitation.I always cherish this moment 🫂💘"><p>First trip to Science centre</p></div>
+                    <div class="anim-child polaroid-item"><img src="images/image9.jpg" alt="Memory 4" class="memory-image" data-text="Remember the second time we went to Science centre on your birthday, it was the first time we hugged eachother, and felt the warmth of that closeness, the intimacy of the embrace, and the comfort of being so near🫂😚"><p>Our first hug ❤️</p></div>
+                </div>
+                <div id="memory-text-display-1" class="anim-child text-lg italic mt-2 memory-text-display"></div>
+                <button id="next-btn-4" class="anim-child btn">One last thing...</button>
+            </div>
+
+            <div id="step5" class="step max-w-lg">
+                <div class="anim-child text-7xl mb-4">🎂</div>
+                <h2 class="anim-child text-4xl md:text-5xl font-bold text-gradient mb-4">My Wish For You</h2>
+                <p class="anim-child text-gray-300 mb-8 text-lg">May the next year bring you all the love, success, and pure happiness you so rightfully deserve. May your dreams soar higher than ever🫂💘. Also take me to a long trip along with you😅❤</p>
+                <button id="next-btn-5" class="anim-child btn">One final surprise...</button>
+            </div>
+
+            <div id="step6" class="step max-w-4xl">
+                <h2 class="anim-child text-4xl md:text-5xl font-bold text-gradient mb-4">And a Few More...</h2>
+                <p class="anim-child text-gray-300 mb-6 text-lg">Looking into the photos from my eyes</p>
+                <div class="photo-grid-large">
+                    <div class="anim-child polaroid-item"><img src="images/image6.jpg" alt="Memory 5" class="memory-image-2" data-text="I still remember this was the first photo you send to me after we came together into this relationship. the innocence of your beautiful face and you message after that(kaise lag rhe hu mai🥹) is sitll close to my heart🫶"><p>Your first photo</p></div>
+                    <div class="anim-child polaroid-item"><img src="images/image2.jpg" alt="Memory 6" class="memory-image-2" data-text="It aws around 25th october 2024, in the morning before my exam you send this photo to me, and believe me it was the time when my heart melted and all the exam stress faded away. I m always thankful to you my LOVE🫂💘 "><p>The last exam</p></div>
+                    <div class="anim-child polaroid-item"><img src="images/image3.jpg" alt="Memory 7" class="memory-image-2" data-text="I still regret the day when I could not meet my beautiful princess in her most elegant look🤌💘"><p>Six yards of pure poetry</p></div>
+                    <div class="anim-child polaroid-item"><img src="images/image5.jpg" alt="Memory 8" class="memory-image-2" data-text="That look , OMG!!!, even Taj Mahal looses it's beauty when you stand in front wearing that white dress🥹❤"><p>A timeless vision.</p></div>
+                    <div class="anim-child polaroid-item"><img src="images/image8.jpg" alt="Memory 9" class="memory-image-2" data-text="Words can't explain this, this is an absolute elegance with zero resistance. This was your first photo which I posted on my IG story❤❤"><p>Deviji</p></div>
+                    <div class="anim-child polaroid-item"><img src="images/image10.jpg" alt="Memory 10" class="memory-image-2" data-text="This photo of yours hold all the innocence and kindenss of your heart🥹💘"><p>Soooooo Cuteeeee</p></div>
+                </div>
+                <div id="memory-text-display-2" class="anim-child text-lg italic mt-2 memory-text-display"></div>
+                <button id="next-btn-6" class="anim-child btn">Still more...</button>
+            </div>
+            
+            <div id="step7" class="step max-w-3xl">
+                <h2 class="anim-child text-4xl md:text-5xl font-bold text-gradient mb-6">And Finally, My Favorites...</h2>
+                <p class="anim-child text-gray-300 mb-6 text-lg">Two pictures that I'll cherish forever.</p>
+                <div class="photo-grid">
+                    <div class="anim-child polaroid-item portrait"><img src="images/image11.jpg" alt="Memory 11" class="memory-image-3" data-text="This is the photo which I urge to capture with you🫂🥹 Please bring this moment again"><p>Its your Birthday</p></div>
+                    <div class="anim-child polaroid-item portrait"><img src="images/image12.jpg" alt="Memory 12" class="memory-image-3" data-text="And finally the Diwali Look. Aise na dekho Nasha ho jata hai tumhara🥹💘"><p>Happy Diwali my beautiful</p></div>
+                </div>
+                <div id="memory-text-display-3" class="anim-child text-lg italic mt-2 memory-text-display"></div>
+                <button id="next-btn-7" class="anim-child btn">The grand finale...</button>
+            </div>
+
+            <div id="step8" class="step max-w-lg">
+                <div class="anim-child text-7xl mb-4">✨</div>
+                <h2 class="anim-child text-4xl md:text-5xl font-bold text-gradient mb-4">And finally my final words....I LOVE YOU MERE PYARII SANSKRITI , HAMESHA KHUSH REHNA🥺🫂 
+                </h2>
+                <div class="h-20 flex items-center justify-center">
+                     <p id="final-wish" class="final-wish-text font-bold text-xl text-pink-300">Happy Birthday! ❤️</p>
+                </div>
+                <button id="confetti-btn" class="anim-child btn">Celebrate!</button>
+                <footer class="anim-child mt-12 text-gray-500 text-sm">Crafted with ❤️ and code, just for you MERE JHANSI KI RANI</footer>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let scene, camera, renderer, hearts = [];
+            const canvasContainer = document.getElementById('canvas-container');
+            function initThreeJS() {
+                scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000); camera.position.z = 30; renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); renderer.setSize(window.innerWidth, window.innerHeight); renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); canvasContainer.appendChild(renderer.domElement); const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); scene.add(ambientLight); const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); directionalLight.position.set(5, 10, 7); scene.add(directionalLight); const heartShape = new THREE.Shape(); heartShape.moveTo(25, 25); heartShape.bezierCurveTo(25, 25, 20, 0, 0, 0); heartShape.bezierCurveTo(-30, 0, -30, 35, -30, 35); heartShape.bezierCurveTo(-30, 55, -10, 77, 25, 95); heartShape.bezierCurveTo(60, 77, 80, 55, 80, 35); heartShape.bezierCurveTo(80, 35, 80, 0, 50, 0); heartShape.bezierCurveTo(35, 0, 25, 25, 25, 25); const extrudeSettings = { depth: 8, bevelEnabled: true, bevelSegments: 2, steps: 2, bevelSize: 1, bevelThickness: 1 }; const geometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings); const colors = [0xfc94af, 0xff7892, 0xf75373, 0xec4899]; for (let i = 0; i < 20; i++) { const material = new THREE.MeshPhongMaterial({ color: colors[Math.floor(Math.random() * colors.length)], emissive: 0x111111, shininess: 100, specular: 0xffffff, transparent: true, opacity: 0.7 }); const heart = new THREE.Mesh(geometry, material); const scale = (Math.random() * 0.04) + 0.02; heart.scale.set(scale, scale, scale); heart.position.set((Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 20); heart.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI); heart.userData = { originalY: heart.position.y, rotationSpeedX: (Math.random() - 0.5) * 0.01, rotationSpeedY: (Math.random() - 0.5) * 0.01, floatDistance: Math.random() * 2 + 1 }; hearts.push(heart); scene.add(heart); } animate();
+            }
+            function animate() {
+                 requestAnimationFrame(animate); const time = Date.now() * 0.0005; hearts.forEach(heart => { if (heart.material.opacity > 0) { heart.rotation.x += heart.userData.rotationSpeedX; heart.rotation.y += heart.userData.rotationSpeedY; heart.position.y = heart.userData.originalY + Math.sin(time + heart.position.x) * heart.userData.floatDistance; } }); renderer.render(scene, camera);
+            }
+            window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }, false);
+
+            const totalSteps = 8;
+            let currentStep = 1;
+            const steps = document.querySelectorAll('.step');
+            const confettiBtn = document.getElementById('confetti-btn');
+            const backgroundMusic = document.getElementById('birthday-song');
+            const openPoemBtn = document.getElementById('open-poem-btn');
+            const closePoemBtn = document.getElementById('close-poem-btn');
+            const poemCard = document.getElementById('poem-card');
+            const flipCardInner = document.querySelector('.flip-card-inner');
+            const step1Content = document.getElementById('step1-content');
+
+            openPoemBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (backgroundMusic.paused) {
+                    backgroundMusic.play().catch(error => console.error("Audio play failed:", error));
+                }
+                gsap.to(step1Content, { opacity: 0, duration: 0.5, onComplete: () => step1Content.style.display = 'none' });
+                gsap.to(poemCard, { display: 'block', opacity: 1, duration: 0.5, delay: 0.5 });
+            });
+
+            flipCardInner.addEventListener('click', (e) => {
+                if (e.target !== closePoemBtn) {
+                    flipCardInner.classList.toggle('is-flipped');
+                }
+            });
+
+            closePoemBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                gsap.to(poemCard, { opacity: 0, duration: 0.5, onComplete: () => { poemCard.style.display = 'none'; flipCardInner.classList.remove('is-flipped'); } });
+                gsap.to(step1Content, { display: 'block', opacity: 1, duration: 0.5, delay: 0.5 });
+            });
+
+            function showStep(stepNumber) {
+                steps.forEach(step => step.classList.remove('active'));
+                const nextStep = document.getElementById(`step${stepNumber}`);
+                if(nextStep) {
+                    nextStep.classList.add('active');
+                    gsap.fromTo(nextStep.querySelectorAll('.anim-child'), 
+                        { opacity: 0, y: 30 },
+                        { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out', stagger: 0.1, delay: 0.4 }
+                    );
+                }
+            }
+            
+            function createNavListener(buttonId, action) { document.getElementById(buttonId).addEventListener('click', action); }
+            
+            createNavListener('start-btn', () => { currentStep++; showStep(currentStep); });
+            createNavListener('next-btn-2', () => { currentStep++; showStep(currentStep); });
+            createNavListener('next-btn-3', () => { currentStep++; showStep(currentStep); });
+            createNavListener('next-btn-4', () => { currentStep++; showStep(currentStep); });
+            createNavListener('next-btn-5', () => { currentStep++; showStep(currentStep); });
+            createNavListener('next-btn-6', () => { currentStep++; showStep(currentStep); });
+            createNavListener('next-btn-7', () => { currentStep++; showStep(currentStep); });
+
+            const wishButtons = document.querySelectorAll('.wish-btn');
+            wishButtons.forEach(button => { button.addEventListener('click', (event) => { event.stopPropagation(); const message = button.dataset.message; alert(message); }); });
+
+            const memoryImages1 = document.querySelectorAll('.memory-image');
+            const memoryTextDisplay1 = document.getElementById('memory-text-display-1');
+            memoryImages1.forEach(image => { image.addEventListener('click', () => { const memoryText = image.dataset.text; gsap.to(memoryTextDisplay1, { opacity: 0, duration: 0.3, onComplete: () => { memoryTextDisplay1.textContent = memoryText; gsap.to(memoryTextDisplay1, { opacity: 1, duration: 0.3 }); } }); }); });
+
+            const memoryImages2 = document.querySelectorAll('.memory-image-2');
+            const memoryTextDisplay2 = document.getElementById('memory-text-display-2');
+            memoryImages2.forEach(image => { image.addEventListener('click', () => { const memoryText = image.dataset.text; gsap.to(memoryTextDisplay2, { opacity: 0, duration: 0.3, onComplete: () => { memoryTextDisplay2.textContent = memoryText; gsap.to(memoryTextDisplay2, { opacity: 1, duration: 0.3 }); } }); }); });
+            
+            const memoryImages3 = document.querySelectorAll('.memory-image-3');
+            const memoryTextDisplay3 = document.getElementById('memory-text-display-3');
+            memoryImages3.forEach(image => { image.addEventListener('click', () => { const memoryText = image.dataset.text; gsap.to(memoryTextDisplay3, { opacity: 0, duration: 0.3, onComplete: () => { memoryTextDisplay3.textContent = memoryText; gsap.to(memoryTextDisplay3, { opacity: 1, duration: 0.3 }); } }); }); });
+
+            confettiBtn.addEventListener('click', () => {
+                confettiBtn.style.pointerEvents = 'none'; gsap.to(confettiBtn, { opacity: 0, duration: 0.5 }); gsap.to('#final-wish', { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out', delay: 0.3 }); const duration = 5 * 1000; const animationEnd = Date.now() + duration; const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 }; const colors = ['#ec4899', '#f9a8d4', '#f43f5e', '#ffffff', '#e879f9']; function randomInRange(min, max) { return Math.random() * (max - min) + min; } const interval = setInterval(() => { const timeLeft = animationEnd - Date.now(); if (timeLeft <= 0) return clearInterval(interval); const particleCount = 50 * (timeLeft / duration); confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } , colors: colors})); confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } , colors: colors})); }, 250); setTimeout(() => { confetti({ particleCount: 20, origin: { y: 0.7 }, emojis: ['❤️', '💖', '✨'], scalar: 3 }); }, 500); hearts.forEach(heart => { gsap.to(heart.position, { x: (Math.random() - 0.5) * 80, y: heart.position.y + 70 + Math.random() * 20, z: (Math.random() - 0.5) * 40, duration: 4, ease: "power3.out" }); gsap.to(heart.rotation, { x: Math.random() * Math.PI * 4, y: Math.random() * Math.PI * 4, duration: 5, ease: "power3.out" }); gsap.to(heart.material, { opacity: 0, duration: 4, delay: 0.5, ease: "power2.in" }); });
+            });
+            initThreeJS();
+            showStep(1);
+        });
+    </script>
+</body>
+</html>
+
